@@ -19,5 +19,6 @@ router.post('/resend-otp', userController.resendOtp);
 // QR code APIs
 router.post('/generate-qr', qrController.generateQr);
 router.get('/get-qr', qrController.getQrByEmail);
+router.get('/User', userController.getAllUsers);
 
 module.exports = router;

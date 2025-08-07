@@ -36,6 +36,8 @@ exports.signIn = async (req, res) => {
 };
 
 // Verify OTP
+const jwt = require('jsonwebtoken');
+
 exports.verifyOtp = async (req, res) => {
   const { mobile, otp } = req.body;
   if (!mobile || !otp) {
@@ -50,7 +52,9 @@ exports.verifyOtp = async (req, res) => {
     user.otp = null;
     user.otpExpires = null;
     await user.save();
-    res.json({ message: 'Sign in successful', user });
+    // Generate JWT
+    const token = jwt.sign({ userId: user.userId, mobile: user.mobile }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' });
+    res.json({ message: 'Sign in successful', user, token });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -74,6 +78,16 @@ exports.resendOtp = async (req, res) => {
     await user.save();
     // TODO: Send OTP via SMS provider here
     res.json({ message: 'OTP resent', otp }); // For demo, return OTP
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get all users
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json({ users });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
