@@ -8,29 +8,23 @@ function generateOTP() {
 // Sign in: generate OTP and save device
 const { v4: uuidv4 } = require('uuid');
 
-exports.signIn = async (req, res) => {
+exports.signUp = async (req, res) => {
   const { mobile, deviceId, name } = req.body;
   if (!mobile) {
     return res.status(400).json({ message: 'Mobile is required.' });
   }
   try {
     let user = await User.findOne({ mobile });
+    if (user) {
+      return res.status(409).json({ message: 'User already exists.' });
+    }
     const otp = generateOTP();
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
     let finalDeviceId = deviceId || uuidv4();
-    if (user) {
-      user.deviceId = finalDeviceId;
-      user.otp = otp;
-      user.otpExpires = otpExpires;
-      if (name) user.name = name;
-      await user.save();
-    } else {
-      const userId = uuidv4();
-      user = new User({ userId, mobile, deviceId: finalDeviceId, otp, otpExpires, name });
-      await user.save();
-    }
+    user = new User({ mobile, deviceId: finalDeviceId, otp, otpExpires, name });
+    await user.save();
     // TODO: Send OTP via SMS provider here
-    res.json({ message: 'OTP sent', otp, deviceId: finalDeviceId, userId: user.userId ,name:name}); // For demo, return OTP, deviceId, userId
+    res.json({ message: 'OTP sent', otp, deviceId: finalDeviceId, name }); // For demo, return OTP, deviceId, name
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -83,6 +77,31 @@ exports.resendOtp = async (req, res) => {
     await user.save();
     // TODO: Send OTP via SMS provider here
     res.json({ message: 'OTP resent', otp }); // For demo, return OTP
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Sign in: check if user exists by mobile and generate OTP for login
+exports.signIn = async (req, res) => {
+  const { mobile } = req.body;
+  if (!mobile) {
+    return res.status(400).json({ message: 'Mobile is required.' });
+  }
+  try {
+    const user = await User.findOne({ mobile });
+    if (user) {
+      // Generate OTP for login
+      const otp = generateOTP();
+      const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
+      user.otp = otp;
+      user.otpExpires = otpExpires;
+      await user.save();
+      // TODO: Send OTP via SMS provider here
+      res.json({ message: 'OTP sent for login', otp, userId: user.userId }); // For demo, return OTP and userId
+    } else {
+      res.status(404).json({ message: 'User not found.' });
+    }
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

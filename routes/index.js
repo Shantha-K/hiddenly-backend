@@ -11,6 +11,7 @@ router.post('/app-info', appInfoController.setAppInfo);
 
 // User sign-in and OTP
 router.post('/sign-in', userController.signIn);
+router.post('/sign-up', userController.signUp);
 router.post('/verify-otp', userController.verifyOtp);
 
 // Resend OTP
@@ -19,7 +20,8 @@ router.post('/resend-otp', userController.resendOtp);
 // QR code APIs
 router.post('/generate-qr', qrController.generateQr);
 router.post('/scan-qr', qrController.scanQr);
-router.get('/get-qr', qrController.getQrByEmail);
+router.post('/get-qr', qrController.getQrByUserId);
+router.get('/get-all-qr', qrController.getAllQr);
 router.get('/User', userController.getAllUsers);
 
 module.exports = router;
