@@ -57,3 +57,21 @@ exports.addContact = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// Check which mobiles exist in database
+exports.checkContactsExist = async (req, res) => {
+  const { mobiles } = req.body;
+  if (!Array.isArray(mobiles) || mobiles.length === 0) {
+    return res.status(400).json({ message: 'Mobiles array is required.' });
+  }
+  try {
+    // Find users whose mobile is in the provided array
+    const users = await User.find({ mobile: { $in: mobiles } });
+    // Return found mobiles and not found mobiles
+    const foundMobiles = users.map(u => u.mobile);
+    const notFoundMobiles = mobiles.filter(m => !foundMobiles.includes(m));
+    res.json({ foundMobiles, notFoundMobiles, users });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};

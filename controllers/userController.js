@@ -110,7 +110,7 @@ exports.signIn = async (req, res) => {
 // Get all users
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find();
+    const users = await User.find().select('name mobile deviceId otp otpExpires userId');
     res.json({ users });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
