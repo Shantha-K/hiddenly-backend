@@ -47,13 +47,33 @@ exports.verifyOtp = async (req, res) => {
     if (!user || user.otp !== otp || user.otpExpires < new Date()) {
       return res.status(401).json({ message: 'Invalid or expired OTP.' });
     }
-    // OTP is valid, clear it
+    
+    // Generate JWT token with user info including mobile
+    const token = jwt.sign(
+      { 
+        id: user._id,
+        mobile: user.mobile,
+        name: user.name 
+      },
+      process.env.JWT_SECRET || 'your_jwt_secret',
+      { expiresIn: '30d' }
+    );
+    
+    // Clear OTP
     user.otp = null;
     user.otpExpires = null;
     await user.save();
-    // Generate JWT
-    const token = jwt.sign({ userId: user.userId, mobile: user.mobile }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' });
-    res.json({ message: 'Sign in successful', user, token });
+
+    // Token has already been generated above
+    res.json({ 
+      message: 'Sign in successful', 
+      user: {
+        id: user._id,
+        name: user.name,
+        mobile: user.mobile
+      }, 
+      token 
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

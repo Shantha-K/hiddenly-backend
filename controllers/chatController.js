@@ -3,9 +3,9 @@ const User = require('../models/User');
 
 // Get chat list for a user
 exports.getChatList = async (req, res) => {
-  const currentUserMobile = req.user.mobile; // From auth middleware
-
   try {
+    // Auth middleware will handle authentication
+    const currentUserMobile = req.user.mobile;
     // Find all messages where user is either sender or receiver
     const messages = await Message.aggregate([
       {

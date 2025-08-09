@@ -56,11 +56,13 @@ router.post('/drive/callback', driveController.handleCallback);
 router.post('/drive/upload', driveController.uploadFile);
 router.post('/drive/refresh-token', driveController.refreshToken);
 
-// Chat APIs
-router.get('/chats', chatController.getChatList); // Get all chats
-router.get('/chat/:mobile', chatController.getMessages); // Get messages with specific user
-router.post('/chat/message', chatController.sendMessage);
-router.patch('/chat/message/:messageId/status', chatController.updateMessageStatus);
-router.post('/chat/:mobile/settings', chatController.setChatSettings);
+const auth = require('../middleware/auth');
+
+// Chat APIs (protected with auth middleware)
+router.get('/chats', auth, chatController.getChatList); // Get all chats
+router.get('/chat/:mobile', auth, chatController.getMessages); // Get messages with specific user
+router.post('/chat/message', auth, chatController.sendMessage);
+router.patch('/chat/message/:messageId/status', auth, chatController.updateMessageStatus);
+router.post('/chat/:mobile/settings', auth, chatController.setChatSettings);
 
 module.exports = router;
