@@ -8,17 +8,10 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: '*' } });
 
-// CORS Configuration
-const corsOptions = {
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://accounts.google.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  credentials: true,
-  maxAge: 86400 // 24 hours
-};
+
 
 // Middleware
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 
 // Additional headers for Google Drive API
@@ -34,6 +27,9 @@ connectDB();
 // Routes
 app.use('/api', require('./routes/index'));
 
+
+// Socket.io instant messaging with DB persistence
+const chatController = require('./controllers/chatController');
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -41,9 +37,15 @@ io.on('connection', (socket) => {
     socket.join(chatId);
   });
 
-  socket.on('sendMessage', (data) => {
-    // You should save the message to DB here
-    io.to(data.chatId).emit('receiveMessage', data);
+  // Instant message event
+  socket.on('sendMessage', async (data) => {
+    // data: { chatId, content, senderMobile }
+    try {
+      const message = await chatController.saveInstantMessageToDB(data);
+      io.to(data.chatId).emit('receiveMessage', message);
+    } catch (err) {
+      socket.emit('errorMessage', { message: err.message });
+    }
   });
 
   // Add more events as needed

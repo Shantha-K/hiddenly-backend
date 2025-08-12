@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
+  chatId:{
+    type: String,
+    required: true,
+  },
   senderMobile: {
     type: String,
     required: true,

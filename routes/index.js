@@ -1,3 +1,7 @@
+// Save instant socket.io message to DB (protected)
+
+// Get chat history by chatId and sender (protected)
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -56,13 +60,23 @@ router.post('/drive/callback', driveController.handleCallback);
 router.post('/drive/upload', driveController.uploadFile);
 router.post('/drive/refresh-token', driveController.refreshToken);
 
-const auth = require('../middleware/auth');
+// const auth = require('../middleware/auth');
 
 // Chat APIs (protected with auth middleware)
-router.get('/chats', auth, chatController.getChatList); // Get all chats
-router.get('/chat/:mobile', auth, chatController.getMessages); // Get messages with specific user
-router.post('/chat/message', auth, chatController.sendMessage);
-router.patch('/chat/message/:messageId/status', auth, chatController.updateMessageStatus);
-router.post('/chat/:mobile/settings', auth, chatController.setChatSettings);
+router.get('/chats',  chatController.getChatList); // Get all chats
+router.get('/chat/:mobile',  chatController.getMessages); // Get messages with specific user
+router.post('/chat/message',  chatController.sendMessage);
+router.patch('/chat/message/:messageId/status',  chatController.updateMessageStatus);
+router.post('/chat/:mobile/settings',  chatController.setChatSettings);
+router.post('/chat/history',  chatController.getChatHistory);
+router.post('/chat/instant-message', chatController.saveInstantMessage);
+
+
+// Start a chat between two users (protected)
+router.post('/chat/start',  chatController.startChat);
+
+
+// Send a message in a chat (protected)
+router.post('/chat/send',  chatController.sendMessage);
 
 module.exports = router;

@@ -31,7 +31,7 @@ exports.signUp = async (req, res) => {
 };
 
 // Verify OTP
-const jwt = require('jsonwebtoken');
+// const jwt = require('jsonwebtoken');
 
 exports.verifyOtp = async (req, res) => {
   const { mobile, otp } = req.body;
@@ -48,31 +48,20 @@ exports.verifyOtp = async (req, res) => {
       return res.status(401).json({ message: 'Invalid or expired OTP.' });
     }
     
-    // Generate JWT token with user info including mobile
-    const token = jwt.sign(
-      { 
-        id: user._id,
-        mobile: user.mobile,
-        name: user.name 
-      },
-      process.env.JWT_SECRET || 'your_jwt_secret',
-      { expiresIn: '30d' }
-    );
+  // JWT token generation removed
     
     // Clear OTP
     user.otp = null;
     user.otpExpires = null;
     await user.save();
 
-    // Token has already been generated above
     res.json({ 
       message: 'Sign in successful', 
       user: {
         id: user._id,
         name: user.name,
         mobile: user.mobile
-      }, 
-      token 
+      }
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -128,6 +117,11 @@ exports.signIn = async (req, res) => {
 };
 
 // Get all users
+exports.logout = (req, res) => {
+  // If using cookies for JWT
+  res.clearCookie('token');
+  return res.status(200).json({ message: 'Logged out successfully' });
+};
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('name mobile deviceId otp otpExpires userId');
