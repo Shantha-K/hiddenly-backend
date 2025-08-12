@@ -1,3 +1,4 @@
+
 // Save instant socket.io message to DB (protected)
 
 // Get chat history by chatId and sender (protected)
@@ -27,6 +28,7 @@ const qrController = require('../controllers/qrController');
 const contactController = require('../controllers/contact');
 const chatController = require('../controllers/chatController');
 const driveController = require('../controllers/driveController');
+const groupController = require('../controllers/groupController');
 
 // Contact APIs
 router.get('/contacts', contactController.getAllContacts);
@@ -78,5 +80,16 @@ router.post('/chat/start',  chatController.startChat);
 
 // Send a message in a chat (protected)
 router.post('/chat/send',  chatController.sendMessage);
+
+// Group chat message APIs
+router.post('/group/sendMessage', groupController.sendGroupMessage); // Send message to group
+router.post('/group/getGroupmessages', groupController.getGroupMessages); // Get all messages for group
+
+// Group APIs
+router.post('/group/Creategroup', groupController.createGroup); // Create group
+router.patch('/group/updateGroupSettings', groupController.updateGroupSettings); // Update group settings
+router.get('/group/getGroupdetails', groupController.getGroup); // Get group details
+router.delete('/group/deleteGroup', groupController.deleteGroup); // Delete group
+router.post('/group/report', groupController.reportGroup); // Report group
 
 module.exports = router;
