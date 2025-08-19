@@ -27,9 +27,9 @@ exports.getAllContacts = async (req, res) => {
 
 // Get contact details by ID
 exports.getContactById = async (req, res) => {
-  const { contactId } = req.params;
+  const { mobile } = req.body;
   try {
-    const user = await User.findById(contactId);
+    const user = await User.findById(mobile);
     if (!user) {
       return res.status(404).json({ message: 'Contact not found.' });
     }

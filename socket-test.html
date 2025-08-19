@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.io Live Messaging Test</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>Socket.io Live Messaging Test</h2>
+  <div>
+    <label>Chat ID: <input id="chatId" value="" /></label><br>
+    <label>Sender Mobile: <input id="senderMobile" value="" /></label><br>
+    <label>Message: <input id="message" value="Hello from browser!" /></label><br>
+    <button onclick="joinChat()">Join Chat</button>
+    <button onclick="sendMessage()">Send Message</button>
+  </div>
+  <pre id="log"></pre>
+  <script>
+    const socket = io('http://localhost:6000');
+    const log = (msg) => {
+      document.getElementById('log').textContent += msg + '\n';
+    };
+    socket.on('connect', () => {
+      log('Connected: ' + socket.id);
+    });
+    socket.on('receiveMessage', (msg) => {
+      log('Received: ' + JSON.stringify(msg));
+    });
+    socket.on('errorMessage', (err) => {
+      log('Error: ' + JSON.stringify(err));
+    });
+    function joinChat() {
+      const chatId = document.getElementById('chatId').value;
+      socket.emit('joinChat', chatId);
+      log('Joined chat: ' + chatId);
+    }
+    function sendMessage() {
+      const chatId = document.getElementById('chatId').value;
+      const senderMobile = document.getElementById('senderMobile').value;
+      const content = document.getElementById('message').value;
+      socket.emit('saveInstantMessage', { chatId, content, senderMobile });
+      log('Sent message: ' + content);
+    }
+  </script>
+</body>
+</html>

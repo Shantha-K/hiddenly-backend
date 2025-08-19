@@ -53,7 +53,7 @@ router.post('/resend-otp', userController.resendOtp);
 router.post('/generate-qr', qrController.generateQr);
 router.post('/get-qr', qrController.getQrByUserId);
 router.get('/get-all-qr', qrController.getAllQr);
-router.get('/getAllUser', userController.getAllUsers);
+router.post('/getAllUser', userController.getAllUsers);
 router.post('/validate-qr', upload.single('file'), qrController.validateQr);
 
 // Google Drive Integration APIs
@@ -65,8 +65,8 @@ router.post('/drive/refresh-token', driveController.refreshToken);
 // const auth = require('../middleware/auth');
 
 // Chat APIs (protected with auth middleware)
-router.get('/chats',  chatController.getChatList); // Get all chats
-router.get('/chat/:mobile',  chatController.getMessages); // Get messages with specific user
+router.post('/chats',  chatController.getChatList); // Get all chats
+router.get('/chat/user',  chatController.getMessages); // Get messages with specific user
 router.post('/chat/message',  chatController.sendMessage);
 router.patch('/chat/message/:messageId/status',  chatController.updateMessageStatus);
 router.post('/chat/:mobile/settings',  chatController.setChatSettings);
@@ -91,5 +91,6 @@ router.patch('/group/updateGroupSettings', groupController.updateGroupSettings);
 router.get('/group/getGroupdetails', groupController.getGroup); // Get group details
 router.delete('/group/deleteGroup', groupController.deleteGroup); // Delete group
 router.post('/group/report', groupController.reportGroup); // Report group
+router.post('/group/getgrouplist', groupController.getGroupList); // Get groups for a mobile number
 
 module.exports = router;

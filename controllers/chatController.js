@@ -8,6 +8,10 @@ exports.saveInstantMessageToDB = async ({ chatId, content, senderMobile }) => {
   if (!chat) {
     throw new Error('Chat not found.');
   }
+  // Check if senderMobile is a participant in the chat
+  if (!chat.participants.includes(senderMobile)) {
+    throw new Error('Sender is not a participant in this chat.');
+  }
   // Infer receiver: the other participant
   let receiverMobile = chat.participants.find(mobile => mobile !== senderMobile);
   const message = new Message({
@@ -87,32 +91,18 @@ exports.getChatList = async (req, res) => {
     const messages = await Message.aggregate([
       {
         $match: {
-          $or: [
-            { senderMobile: mobile },
-            { receiverMobile: mobile }
-          ]
+          senderMobile: mobile
         }
       },
       { $sort: { createdAt: -1 } },
       {
         $group: {
-          _id: {
-            $cond: [
-              { $eq: ["$senderMobile", mobile] },
-              "$receiverMobile",
-              "$senderMobile"
-            ]
-          },
+          _id: "$receiverMobile",
           lastMessage: { $first: "$$ROOT" },
           unreadCount: {
             $sum: {
               $cond: [
-                { 
-                  $and: [
-                    { $eq: ["$receiverMobile", mobile] },
-                    { $ne: ["$status", "seen"] }
-                  ]
-                },
+                { $ne: ["$status", "seen"] },
                 1,
                 0
               ]
@@ -201,9 +191,10 @@ exports.startChat = async (req, res) => {
     return res.status(400).json({ message: 'Sender and receiver are required.' });
   }
   try {
-    // Check if chat already exists
+    // Check if chat already exists for both sender/receiver orders
     let chat = await Chat.findOne({
-      participants: { $all: [sender, receiver] }
+      participants: { $all: [sender, receiver] },
+      $expr: { $eq: [ { $size: "$participants" }, 2 ] }
     });
     if (!chat) {
       chat = new Chat({
@@ -240,8 +231,8 @@ exports.updateMessageStatus = async (req, res) => {
 
 // Set chat settings (disappearing messages)
 exports.setChatSettings = async (req, res) => {
-  const { userId } = req.params;
-  const { hours, minutes, seconds, currentUserId } = req.body;
+  // const {  } = req.params;
+  const { userId,hours, minutes, seconds, currentUserId } = req.body;
   if (!currentUserId) {
     return res.status(400).json({ message: 'currentUserId is required in body.' });
   }
