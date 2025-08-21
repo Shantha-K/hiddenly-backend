@@ -84,6 +84,7 @@ router.post('/chat/send',  chatController.sendMessage);
 // Group chat message APIs
 router.post('/group/sendMessage', groupController.sendGroupMessage); // Send message to group
 router.post('/group/getGroupmessages', groupController.getGroupMessages); // Get all messages for group
+router.post('/group/instant-message', groupController.saveInstantGroupMessage); // Save instant group message
 
 // Group APIs
 router.post('/group/Creategroup', groupController.createGroup); // Create group

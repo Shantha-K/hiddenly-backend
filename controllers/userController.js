@@ -9,6 +9,7 @@ function generateOTP() {
 const { v4: uuidv4 } = require('uuid');
 
 exports.signUp = async (req, res) => {
+  console.log("api hit in browser");
   const { mobile, deviceId, name } = req.body;
   if (!mobile) {
     return res.status(400).json({ message: 'Mobile is required.' });
@@ -22,7 +23,8 @@ exports.signUp = async (req, res) => {
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
     let finalDeviceId = deviceId || uuidv4();
     user = new User({ mobile, deviceId: finalDeviceId, otp, otpExpires, name });
-    await user.save();
+    const savedata = await user.save();
+    console.log("savedata==>",savedata)
     // TODO: Send OTP via SMS provider here
     res.json({ message: 'OTP sent', otp, deviceId: finalDeviceId, name }); // For demo, return OTP, deviceId, name
   } catch (err) {

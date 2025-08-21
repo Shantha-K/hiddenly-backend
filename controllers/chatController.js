@@ -127,7 +127,21 @@ exports.getChatList = async (req, res) => {
         }
       }
     ]);
-    res.json({ chats: messages });
+
+    // Get group details for this mobile number
+    const Group = require('../models/Group');
+    const User = require('../models/User');
+    const user = await User.findOne({ mobile });
+    let groups = [];
+    if (user) {
+      groups = await Group.find({ participants: user._id }).populate('participants', 'mobile name');
+      groups = groups.map(group => ({
+        ...group.toObject(),
+        participants: group.participants.map(p => p.mobile)
+      }));
+    }
+
+    res.json({ chats: messages, groups });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching chat list', error: err.message });
   }
@@ -178,6 +192,15 @@ exports.sendMessage = async (req, res) => {
       hideAfter: null
     });
     await message.save();
+    // Emit real-time chat message via Socket.IO
+    try {
+      const io = require('../socket').getIO ? require('../socket').getIO() : null;
+      if (io) {
+        io.to(chatId).emit('chatMessage', message);
+      }
+    } catch (e) {
+      // ignore socket errors for REST
+    }
     res.status(201).json({ message: 'Message sent successfully', data: message });
   } catch (err) {
     res.status(500).json({ message: 'Error sending message', error: err.message });

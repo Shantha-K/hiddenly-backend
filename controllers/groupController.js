@@ -1,3 +1,45 @@
+// REST endpoint to save instant group message
+exports.saveInstantGroupMessage = async (req, res) => {
+  const { groupId, sender, content, messageType } = req.body;
+  if (!groupId || !sender || !content) {
+    return res.status(400).json({ message: 'groupId, sender, and content are required.' });
+  }
+  try {
+    const message = await exports.saveInstantGroupMessageToDB({ groupId, sender, content, messageType });
+    res.status(201).json({ message: 'Instant group message saved', data: message });
+  } catch (err) {
+    res.status(500).json({ message: 'Error saving instant group message', error: err.message });
+  }
+};
+// Reusable function to save instant group message (for REST and Socket.io)
+exports.saveInstantGroupMessageToDB = async ({ groupId, sender, content, messageType }) => {
+  if (!groupId || !sender || !content) {
+    throw new Error('groupId, sender, and content are required.');
+  }
+  // Find group and participants
+  const group = await Group.findById(groupId).populate('participants', 'mobile');
+  if (!group) {
+    throw new Error('Group not found.');
+  }
+  // Check sender is in group participants by mobile
+  const isSenderParticipant = group.participants.some(p => p.mobile === sender);
+  if (!isSenderParticipant) {
+    throw new Error('Sender is not a participant of this group.');
+  }
+  // Find sender user by mobile
+  const senderUser = await User.findOne({ mobile: sender });
+  if (!senderUser) {
+    throw new Error('Sender user not found.');
+  }
+  const message = new GroupMessage({
+    groupId: group._id,
+    sender: senderUser._id,
+    content,
+    messageType: messageType || 'text'
+  });
+  await message.save();
+  return message;
+};
 // Get all groups for a particular mobile number
 exports.getGroupList = async (req, res) => {
   const { mobile } = req.body;

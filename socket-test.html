@@ -1,44 +1,257 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Socket.io Live Messaging Test</title>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket Chat Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    #logs { background: #222; color: #bada55; padding: 1em; height: 120px; overflow-y: auto; }
+    #chatBox { background: #f4f4f4; min-height: 120px; padding: 1em; }
+    input, button { margin: 0.5em 0; }
+    .me { color: #1976d2; font-weight: bold; }
+    .other { color: #388e3c; }
+  </style>
 </head>
 <body>
-  <h2>Socket.io Live Messaging Test</h2>
-  <div>
-    <label>Chat ID: <input id="chatId" value="" /></label><br>
-    <label>Sender Mobile: <input id="senderMobile" value="" /></label><br>
-    <label>Message: <input id="message" value="Hello from browser!" /></label><br>
-    <button onclick="joinChat()">Join Chat</button>
-    <button onclick="sendMessage()">Send Message</button>
+  <h2>Socket Chat Test</h2>
+  <div style="margin-bottom:1em;">
+    <h4>User Registration & OTP</h4>
+    <label>Mobile: <input id="signupMobile" value=""></label>
+    <label>Name: <input id="signupName" value=""></label>
+    <button onclick="signUpUser()">Sign Up</button>
+    <br>
+    <label>OTP: <input id="otpInput" value=""></label>
+    <button onclick="verifyOtpUser()">Verify OTP</button>
   </div>
-  <pre id="log"></pre>
+  <div style="margin-bottom:1em;">
+    <h4>Start Chat</h4>
+    <label>Sender Mobile: <input id="startSender" value=""></label>
+    <label>Receiver Mobile: <input id="startReceiver" value=""></label>
+    <button onclick="startChat()">Start Chat</button>
+    <span id="chatIdDisplay"></span>
+  </div>
+  <div>
+    <label>Chat ID: <input id="chatId" value=""></label>
+    <label>Mobile: <input id="mobile" value=""></label>
+    <label>Peer Mobile: <input id="peerMobile" value=""></label>
+    <button onclick="connectSocket()">Connect</button>
+    <button onclick="disconnectSocket()">Disconnect</button>
+    <button onclick="loadChatHistory()">Load Chat</button>
+  </div>
   <script>
-    const socket = io('http://localhost:6000');
-    const log = (msg) => {
-      document.getElementById('log').textContent += msg + '\n';
-    };
-    socket.on('connect', () => {
-      log('Connected: ' + socket.id);
-    });
-    socket.on('receiveMessage', (msg) => {
-      log('Received: ' + JSON.stringify(msg));
-    });
-    socket.on('errorMessage', (err) => {
-      log('Error: ' + JSON.stringify(err));
-    });
-    function joinChat() {
-      const chatId = document.getElementById('chatId').value;
-      socket.emit('joinChat', chatId);
-      log('Joined chat: ' + chatId);
+    // --- User Registration & OTP ---
+    async function signUpUser() {
+      const mobile = document.getElementById('signupMobile').value;
+      const name = document.getElementById('signupName').value;
+      if (!mobile || !name) {
+        log('Enter mobile and name');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/sign-up`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobile, name })
+        });
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+        if (!res.ok) {
+          log('Sign up failed: ' + (data.message || res.statusText));
+        } else {
+          log('Sign up: ' + data.message + (data.otp ? ' (OTP: ' + data.otp + ')' : ''));
+          if (data.otp) showOtp(data.otp);
+        }
+      } catch (e) {
+        log('Sign up error: ' + e);
+      }
     }
-    function sendMessage() {
-      const chatId = document.getElementById('chatId').value;
-      const senderMobile = document.getElementById('senderMobile').value;
-      const content = document.getElementById('message').value;
-      socket.emit('saveInstantMessage', { chatId, content, senderMobile });
-      log('Sent message: ' + content);
+    async function verifyOtpUser() {
+      const mobile = document.getElementById('signupMobile').value;
+      const otp = document.getElementById('otpInput').value;
+      if (!mobile || !otp) {
+        log('Enter mobile and OTP');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobile, otp })
+        });
+        const data = await res.json();
+        log('OTP verify: ' + data.message);
+        // Auto-fill the chat Mobile field after successful OTP verification
+        if (res.ok) {
+          document.getElementById('mobile').value = mobile;
+        }
+      } catch (e) {
+        log('OTP verify error: ' + e);
+      }
+    }
+    // --- Start Chat ---
+    async function startChat() {
+      const sender = document.getElementById('startSender').value;
+      const receiver = document.getElementById('startReceiver').value;
+      if (!sender || !receiver) {
+        log('Enter sender and receiver mobile');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/chat/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sender, receiver })
+        });
+        const data = await res.json();
+        if (data.chatId) {
+          document.getElementById('chatId').value = data.chatId;
+          document.getElementById('chatIdDisplay').textContent = 'Chat ID: ' + data.chatId;
+          log('Chat started: ' + data.chatId);
+        } else {
+          log('Start chat failed: ' + (data.message || 'Unknown error'));
+        }
+      } catch (e) {
+        log('Start chat error: ' + e);
+      }
+    }
+  </script>
+  <div style="margin-top:1em;">
+    <input id="chatMessage" placeholder="Type a message..." style="width:60%">
+    <button onclick="sendChatMessage()">Send</button>
+  </div>
+  <ul id="chatBox"></ul>
+  <div style="margin:1em 0;">
+  <strong>Latest OTP:</strong> <span id="latestOtp" style="font-size:1.2em;color:#d32f2f;"></span>
+</div>
+  <h3>Logs</h3>
+  <pre id="logs"></pre>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    let socket;
+    let currentChatId = '';
+    let currentMobile = '';
+    let currentPeer = '';
+    function log(msg) {
+      const logs = document.getElementById('logs');
+      logs.textContent += `\n${new Date().toLocaleTimeString()} | ${msg}`;
+      logs.scrollTop = logs.scrollHeight;
+    }
+    function showOtp(otp) {
+  document.getElementById('latestOtp').textContent = otp || '';
+}
+    function connectSocket() {
+      currentMobile = document.getElementById('mobile').value;
+      currentChatId = document.getElementById('chatId').value;
+      socket = io('http://35.154.10.237:5000', {
+        query: { callerId: currentMobile }
+      });
+      socket.on('connect', () => {
+        log('Connected as ' + currentMobile);
+        // Join the chat room for real-time updates
+        if (currentChatId) {
+          socket.emit('joinRoom', currentChatId);
+          log('Joined chat room: ' + currentChatId);
+        }
+      });
+      socket.on('disconnect', () => log('Disconnected'));
+      socket.on('chatMessage', data => {
+        if (data.chatId === currentChatId) {
+          appendChatMessage(data);
+        }
+        log('New chat message: ' + JSON.stringify(data));
+      });
+      socket.on('error', err => log('Error: ' + err));
+    }
+    function disconnectSocket() {
+      if (socket) {
+        socket.disconnect();
+        log('Socket disconnected');
+      }
+    }
+    function appendChatMessage(msg) {
+      const chatBox = document.getElementById('chatBox');
+      const li = document.createElement('li');
+      li.textContent = `${msg.senderMobile}: ${msg.content}`;
+      li.className = (msg.senderMobile === currentMobile) ? 'me' : 'other';
+      chatBox.appendChild(li);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    function clearChatBox() {
+      document.getElementById('chatBox').innerHTML = '';
+    }
+    const API_BASE = 'http://35.154.10.237:5000';
+    async function loadChatHistory() {
+      currentChatId = document.getElementById('chatId').value;
+      currentMobile = document.getElementById('mobile').value;
+      currentPeer = document.getElementById('peerMobile').value;
+      if (!currentChatId || !currentMobile || !currentPeer) {
+        log('Please fill chatId, mobile, peerMobile');
+        return;
+      }
+      clearChatBox();
+      // Join the chat room for real-time updates
+      if (socket && socket.connected) {
+        socket.emit('joinRoom', currentChatId);
+        log('Joined chat room: ' + currentChatId);
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/chat/getChatHistory`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: currentChatId, sender: currentMobile, receiver: currentPeer })
+        });
+        let data, text;
+        try {
+          data = await res.json();
+        } catch (jsonErr) {
+          text = await res.text();
+          log('Non-JSON response: ' + text);
+          return;
+        }
+        if (data.chathistory) {
+          data.chathistory.forEach(appendChatMessage);
+          log('Loaded chat history');
+        } else {
+          log('No chat history');
+        }
+      } catch (e) {
+        log('Error loading chat: ' + e);
+      }
+    }
+    async function sendChatMessage() {
+      const content = document.getElementById('chatMessage').value;
+      if (!content || !currentChatId || !currentMobile) {
+        log('Fill chatId, mobile, and message');
+        return;
+      }
+      try {
+  const res = await fetch(`${API_BASE}/api/chat/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: currentChatId, content, messageType: 'text', senderMobile: currentMobile })
+        });
+        let data, text;
+        try {
+          data = await res.json();
+        } catch (jsonErr) {
+          text = await res.text();
+          log('Non-JSON response: ' + text);
+          return;
+        }
+        if (data && data.data) {
+          document.getElementById('chatMessage').value = '';
+          log('Message sent');
+        } else {
+          log('Send failed: ' + (data && data.message ? data.message : 'Unknown error'));
+        }
+      } catch (e) {
+        log('Error sending: ' + e);
+      }
     }
   </script>
 </body>
